@@ -10,8 +10,6 @@
 #include <SFML/Window/Mouse.hpp>
 #include <algorithm>
 #include <cstddef>
-#include <iostream>
-#include <iterator>
 #include <string>
 #include <thread>
 #include <vector>
@@ -78,7 +76,8 @@ bool makeMove(int (&BOARD)[8][8], std::vector<sf::Vector2i> moves,
     int piece = BOARD[SELECTED.y][SELECTED.x];
     BOARD[SELECTED.y][SELECTED.x] = EMPTY;
     BOARD[move.y][move.x] = piece;
-    turn &= 0; // flips the value. Thank you EE109 for teaching me this.
+    turn ^= 1; // flips the value. Thank you EE109 for teaching me this.
+    std::cout << turn << std::endl;
     return true;
   } else {
     return false;
