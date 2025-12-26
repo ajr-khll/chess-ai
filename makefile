@@ -15,7 +15,7 @@ SFML_LIBS := -lsfml-graphics -lsfml-window -lsfml-system
 FRAMEWORKS := -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo
 
 TARGET := app
-SRCS   := main.cpp Moves.cpp
+SRCS   := main.cpp Moves.cpp simulateMoves.cpp minimax.cpp
 OBJS   := $(SRCS:.cpp=.o)
 
 all: $(TARGET)

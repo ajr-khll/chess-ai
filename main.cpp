@@ -1,4 +1,6 @@
+#include "Moves.h"
 #include "TextureManager.h"
+#include "minimax.h"
 #include <SFML/Graphics.hpp>
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/Color.hpp>
@@ -9,6 +11,7 @@
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/Mouse.hpp>
 #include <algorithm>
+#include <atomic>
 #include <cstddef>
 #include <string>
 #include <thread>
@@ -46,14 +49,22 @@ std::string getTexturePath(int pieceId) {
   }
 }
 
+std::atomic<bool> running{true};
+
 enum turns { WHITE = 0, BLACK = 1 };
 enum modes { DEACTIVED = 0, MOVE = 1 };
 
 std::vector<sf::Texture> TEXTUREMAP = {};
 sf::Vector2i SELECTED = {-1, -1};
-size_t turn = WHITE;
-size_t mode = DEACTIVED;
-std::vector<sf::Vector2i> moves;
+
+int mode = DEACTIVED;
+std::vector<Move> moves;
+sf::Vector2i whiteKingPos;
+sf::Vector2i blackKingPos;
+
+static inline bool inBounds(int x, int y) {
+  return x >= 0 && x < 8 && y >= 0 && y < 8;
+}
 
 void drawTile(sf::RenderWindow *win, sf::Color col, sf::Vector2f pos) {
   sf::RectangleShape tile({150.0f, 150.0f});
@@ -69,66 +80,51 @@ void drawPlaceholder(sf::RenderWindow *win, sf::Color col, sf::Vector2f pos) {
   win->draw(placeholder);
 }
 
-bool makeMove(int (&BOARD)[8][8], std::vector<sf::Vector2i> moves,
-              sf::Vector2i move) {
-  auto it = std::find(moves.begin(), moves.end(), move);
-  if (it != moves.end()) {
-    int piece = BOARD[SELECTED.y][SELECTED.x];
-    BOARD[SELECTED.y][SELECTED.x] = EMPTY;
-    BOARD[move.y][move.x] = piece;
-    turn ^= 1; // flips the value. Thank you EE109 for teaching me this.
-    std::cout << turn << std::endl;
-    return true;
-  } else {
-    return false;
-  }
-}
-
-sf::Vector2i selectPiece(sf::Vector2i localPosition, int (&BOARD)[8][8]) {
+sf::Vector2i selectPiece(sf::Vector2i localPosition, GameState &current) {
   sf::Vector2i coordinate = {(localPosition.x / 150), (localPosition.y / 150)};
+  int BOARD[8][8];
+  std::copy(&current.board[0][0], &current.board[0][0] + 64, &BOARD[0][0]);
   if (mode == DEACTIVED) {
-    if (BOARD[(int)coordinate.y][(int)coordinate.x]) {
-      mode = MOVE;
-      SELECTED = coordinate;
-      return coordinate;
+
+    if (inBounds(coordinate.x, coordinate.y) &&
+        BOARD[coordinate.y][coordinate.x] != EMPTY) {
+
+      int clicked = BOARD[coordinate.y][coordinate.x];
+      if (clicked != EMPTY && colorOf(clicked) == current.sideToMove) {
+        mode = MOVE;
+        SELECTED = coordinate;
+        return coordinate;
+      }
+
     } else {
       mode = DEACTIVED;
       return sf::Vector2i{-1, -1};
     }
-  } else {
-    mode = DEACTIVED;
-    if (makeMove(BOARD, moves, coordinate)) {
+  } else { // mode == MOVE
+    Move attempted = {SELECTED, coordinate};
+    GameState newState = makeMove(current, attempted, moves);
+
+    bool same = std::equal(&newState.board[0][0], &newState.board[0][0] + 64,
+                           &current.board[0][0]);
+
+    if (!same) {
+      mode = DEACTIVED;
+      current = newState;
       return coordinate;
-    } else {
-      return sf::Vector2i{-1, -1};
     }
-  };
-}
-
-std::vector<sf::Vector2i> calculatePossibleMoves(int piece,
-                                                 sf::Vector2i position,
-                                                 int (&BOARD)[8][8],
-                                                 sf::RenderWindow *window) {
-  std::vector<sf::Vector2i> moves;
-  if (piece == W_PAWN) {
-    if (BOARD[position.y - 1][position.x] == EMPTY) {
-      moves.push_back(sf::Vector2i{position.x, position.y - 1});
+    if (inBounds(coordinate.x, coordinate.y)) {
+      int clicked = BOARD[coordinate.y][coordinate.x];
+      if (clicked != EMPTY && colorOf(clicked) == current.sideToMove) {
+        SELECTED = coordinate;
+        return coordinate;
+      }
     }
-    if (BOARD[position.y - 1][position.x - 1] != EMPTY) {
-      moves.push_back(sf::Vector2i{position.x - 1, position.y - 1});
-    }
-    if (position.y == 6 && BOARD[position.y - 2][position.x] == EMPTY) {
-      moves.push_back(sf::Vector2i{position.x, position.y - 2});
-    }
+    mode = DEACTIVED;
+    SELECTED = {-1, -1};
+    return sf::Vector2i{-1, -1};
   }
-  if (piece == B_PAWN) {
-    if (BOARD[position.y + 1][position.x] == EMPTY) {
-      moves.push_back(sf::Vector2i{position.x, position.y + 1});
-    }
-  }
-
-  return moves;
-}
+  return sf::Vector2i{-1, -1};
+};
 
 void drawBoard(sf::RenderWindow *win, int (&PLACEHOLDER)[8][8]) {
   for (int i = 0; i < 8; ++i) {
@@ -181,21 +177,19 @@ void drawPieces(int board[][8], sf::RenderWindow *win,
   }
 }
 
-void renderingThread(sf::RenderWindow *win, int (&BOARD)[8][8],
+void renderingThread(sf::RenderWindow *win, GameState *state,
                      int (&PLACEHOLDER)[8][8]) {
   bool set = win->setActive(true);
 
   TextureManager texManager;
   while (win->isOpen()) {
     // draw n stuff
-    while (const std::optional event = win->pollEvent()) {
-      if (event->is<sf::Event::Closed>())
-        win->close();
+    while (running) {
+      win->clear();
+      drawBoard(win, PLACEHOLDER);
+      drawPieces(state->board, win, texManager);
+      win->display();
     }
-    win->clear();
-    drawBoard(win, PLACEHOLDER);
-    drawPieces(BOARD, win, texManager);
-    win->display();
   };
 };
 
@@ -203,6 +197,9 @@ int main() {
   sf::RenderWindow window(sf::VideoMode({1200, 1200}), "Chess");
   bool set = window.setActive(false);
   window.setPosition({0, 0});
+  window.setFramerateLimit(60);
+  GameState game;
+
   int board[8][8] = {
       {B_ROOK, B_KNIGHT, B_BISHOP, B_QUEEN, B_KING, B_BISHOP, B_KNIGHT,
        B_ROOK}, // Row 0 (Black Back Rank)
@@ -218,16 +215,24 @@ int main() {
        W_ROOK} // Row 7 (White Back Rank)
   };
 
-  int placeholder[8][8] = {0};
+  std::copy(&board[0][0], &board[0][0] + 64,
+            &game.board[0][0]); // assign start gamestate board using memory
+                                // copy (what a wonderful programming language
+                                // this is)
+  game.sideToMove = WHITE;
+  game.kingPos[WHITE] = {4, 7};
+  game.kingPos[BLACK] = {4, 0};
 
-  std::thread thread(&renderingThread, &window, std::ref(board),
-                     std::ref(placeholder));
+  int placeholder[8][8] = {{0}};
+
+  std::thread thread(&renderingThread, &window, &game, std::ref(placeholder));
 
   while (window.isOpen()) {
     // game loop
     while (const std::optional event = window.pollEvent()) {
       if (event->is<sf::Event::Closed>()) {
         window.close();
+        running = false;
       }
       if (const auto *mouseEvent =
               event->getIf<sf::Event::MouseButtonPressed>()) {
@@ -236,14 +241,27 @@ int main() {
                     &placeholder[0][0] + sizeof(placeholder) / sizeof(int), 0);
 
           sf::Vector2i mousePos(mouseEvent->position.x, mouseEvent->position.y);
-          sf::Vector2i coordinate = selectPiece(mousePos, board);
-          if (board[coordinate.y][coordinate.x] / 6 == turn) {
-            moves = calculatePossibleMoves(board[coordinate.y][coordinate.x],
-                                           coordinate, board, &window);
+          sf::Vector2i coordinate = selectPiece(mousePos, game);
+          if (colorOf(game.board[coordinate.y][coordinate.x]) ==
+              game.sideToMove) {
+            moves = calculatePossibleMoves(
+                game.board[coordinate.y][coordinate.x], coordinate, game);
 
-            for (sf::Vector2i move : moves) {
-              placeholder[move.y][move.x] = 1;
+            for (Move move : moves) {
+              placeholder[move.to.y][move.to.x] = 1;
             }
+          }
+        }
+      }
+      if (const auto *keyboardEvent = event->getIf<sf::Event::KeyPressed>()) {
+        if (keyboardEvent->code == sf::Keyboard::Key::Backslash) {
+          if (game.sideToMove == BLACK) {
+            // we run minimax for black
+            evaluatedMove bestMove = Minimax(game, BLACK);
+            std::cout << "Best Move for Black: " << bestMove.move.from.y << ", "
+                      << bestMove.move.from.x << " -> " << bestMove.move.to.y
+                      << ", " << bestMove.move.to.x << std::endl;
+            game = makeMove(game, bestMove.move);
           }
         }
       }
