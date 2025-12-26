@@ -1,0 +1,19 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-std=c++17",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-I/opt/homebrew/include",
+      "-c",
+      "-o",
+      "main.o",
+      "main.cpp"
+    ],
+    "directory": "/Users/aj/Documents/projects/chess-ai",
+    "file": "/Users/aj/Documents/projects/chess-ai/main.cpp",
+    "output": "/Users/aj/Documents/projects/chess-ai/main.o"
+  }
+]
