@@ -6,5 +6,5 @@ struct evaluatedMove {
   int score = 0;
 };
 
-evaluatedMove Minimax(GameState state, int side,
+evaluatedMove Minimax(GameState state, int side, int alpha, int beta,
                       Move lastMove = {{-1, -1}, {-1, -1}}, int depth = 0);

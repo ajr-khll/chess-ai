@@ -2,6 +2,8 @@
 #include "TextureManager.h"
 #include "gui.h"
 #include "minimax.h"
+#include "simulateMoves.h"
+#include "timer.cpp"
 #include <SFML/Graphics.hpp>
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/Color.hpp>
@@ -180,6 +182,14 @@ void drawPieces(int board[][8], sf::RenderWindow *win,
   }
 }
 
+// wrapper function to time our minimax algorithm per move
+evaluatedMove algorithmMove(GameState state, int side) {
+  Timer t;
+  int alpha = -1000000;
+  int beta = 1000000;
+  return Minimax(state, side, alpha, beta);
+}
+
 void renderingThread(sf::RenderWindow *win, GameState *state,
                      int (&PLACEHOLDER)[8][8]) {
   bool set = win->setActive(true);
@@ -271,8 +281,8 @@ int main() {
       if (const auto *keyboardEvent = event->getIf<sf::Event::KeyPressed>()) {
         if (keyboardEvent->code == sf::Keyboard::Key::Backslash) {
           if (game.sideToMove == BLACK) {
-            // we run minimax for black
-            evaluatedMove bestMove = Minimax(game, BLACK);
+            // grab the best move for black, using wrapper function to time it.
+            evaluatedMove bestMove = algorithmMove(game, BLACK);
             std::cout << "Best Move for Black: " << bestMove.move.from.y << ", "
                       << bestMove.move.from.x << " -> " << bestMove.move.to.y
                       << ", " << bestMove.move.to.x << std::endl;

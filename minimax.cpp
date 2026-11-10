@@ -1,7 +1,9 @@
+#include "minimax.h"
 #include "Moves.h"
 #include "TextureManager.h"
 #include "simulateMoves.h"
 #include <cstddef>
+#include <optional>
 
 // Array for values of pieces
 // 0: Empty
@@ -143,13 +145,18 @@ int evaluateScore(GameState state, int color) {
 }
 
 // Minimax algorithm, recursive
-const int CAP = 4; // think no more than 5 moves ahead
-int counter = 0;
+const int CAP = 5; // think no more than 5 moves ahead
 
-evaluatedMove Minimax(GameState state, int side, Move lastMove, int depth) {
+evaluatedMove Minimax(GameState state, int side, int alpha, int beta,
+                      Move lastMove, int depth) {
   // base case
+
   if (depth == CAP) {
-    return {lastMove, evaluateScore(state, BLACK)};
+    int score = evaluateScore(state, BLACK);
+    if (score > alpha) {
+      alpha = score;
+    }
+    return {lastMove, score};
   }
   evaluatedMove bestMove;
   bestMove.move = {{-1, -1}, {-1, -1}};
@@ -176,16 +183,28 @@ evaluatedMove Minimax(GameState state, int side, Move lastMove, int depth) {
   int enemy = !side;
   for (Move move : moves) {
     evaluatedMove result =
-        Minimax(simulateMove(state, move), enemy, move, depth + 1);
+        Minimax(simulateMove(state, move), enemy, alpha, beta, move, depth + 1);
     if (side == BLACK) {
+      if (result.score > alpha) {
+        alpha = result.score;
+      }
       if (result.score > bestMove.score) {
         bestMove.score = result.score;
         bestMove.move = move;
       }
+      if (alpha >= beta) {
+        break;
+      }
     } else {
+      if (result.score < beta) {
+        beta = result.score;
+      }
       if (result.score < bestMove.score) {
         bestMove.score = result.score;
         bestMove.move = move;
+      }
+      if (beta <= alpha) {
+        break;
       }
     }
   }
