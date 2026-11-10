@@ -2,9 +2,12 @@
 #include "TextureManager.h"
 #include "simulateMoves.h"
 
+#include <algorithm>
 #include <array>
 #include <optional>
 #include <vector>
+
+using std::vector;
 
 enum colors { WHITE = 0, BLACK = 1 };
 
@@ -65,8 +68,6 @@ std::vector<Move> removeIllegalMoves(int piece, std::vector<Move> moves,
 
     if (!isInCheck(simulated, mover)) {
       validMoves.push_back(move);
-    } else {
-      std::cout << "check detected!" << std::endl;
     }
   }
   return validMoves;
@@ -190,21 +191,17 @@ bool isSquareAttacked(int (&BOARD)[8][8], sf::Vector2i target,
   if (attackerColor == WHITE) {
     int py = ty + 1;
     if (inBounds(tx - 1, py) && BOARD[py][tx - 1] == W_PAWN) {
-      std::cout << "Attacked by pawn" << std::endl;
       return true;
     }
     if (inBounds(tx + 1, py) && BOARD[py][tx + 1] == W_PAWN) {
-      std::cout << "Attacked by pawn" << std::endl;
       return true;
     }
   } else if (attackerColor == BLACK) {
     int py = ty - 1;
     if (inBounds(tx - 1, py) && BOARD[py][tx - 1] == B_PAWN) {
-      std::cout << "Attacked by pawn" << std::endl;
       return true;
     }
     if (inBounds(tx + 1, py) && BOARD[py][tx + 1] == B_PAWN) {
-      std::cout << "Attacked by pawn" << std::endl;
       return true;
     }
   }
@@ -225,7 +222,6 @@ bool isSquareAttacked(int (&BOARD)[8][8], sf::Vector2i target,
   for (auto d : knightD) {
     if (inBounds(tx + d.x, ty + d.y) &&
         BOARD[ty + d.y][tx + d.x] == attackerKnight) {
-      std::cout << "Attacked by Knight" << std::endl;
       return true;
     }
   }
@@ -237,7 +233,6 @@ bool isSquareAttacked(int (&BOARD)[8][8], sf::Vector2i target,
         continue;
       int x = tx + dx, y = ty + dy;
       if (inBounds(x, y) && BOARD[y][x] == attackerKing) {
-        std::cout << "Attacked by King" << std::endl;
         return true;
       }
     }
@@ -258,7 +253,6 @@ bool isSquareAttacked(int (&BOARD)[8][8], sf::Vector2i target,
       int p = BOARD[y][x];
       if (p != EMPTY) {
         if (p == attackerRook || p == attackerQueen) {
-          std::cout << "attacked by queen or rook" << std::endl;
           return true;
         }
         break; // blocked by something else
@@ -274,7 +268,6 @@ bool isSquareAttacked(int (&BOARD)[8][8], sf::Vector2i target,
       int p = BOARD[y][x];
       if (p != EMPTY) {
         if (p == attackerBish || p == attackerQueen) {
-          std::cout << "attacked by queen or bishop" << std::endl;
           return true;
         }
         break;
@@ -287,9 +280,32 @@ bool isSquareAttacked(int (&BOARD)[8][8], sf::Vector2i target,
   return false;
 }
 
+vector<Move> gatherMoves(GameState state, int side) {
+  std::vector<Move> moves;
+  for (int y = 0; y < 8; ++y) {
+    for (int x = 0; x < 8; ++x) {
+      int piece = state.board[y][x];
+      if (colorOf(piece) == side) {
+        std::vector<Move> pieceMoves =
+            calculatePossibleMoves(piece, {x, y}, state);
+        moves.insert(moves.end(), pieceMoves.begin(), pieceMoves.end());
+      }
+    }
+  }
+  return moves;
+}
+
 bool isInCheck(GameState state, int color) {
   int enemyColor = color ^ 1;
   return isSquareAttacked(state.board, state.kingPos[color], enemyColor);
+}
+
+bool isCheckmated(GameState state, int color) {
+  if (gatherMoves(state, color).empty() && isInCheck(state, color)) {
+    return true;
+  } else {
+    return false;
+  }
 }
 
 GameState makeMove(const GameState &current, const Move &move,

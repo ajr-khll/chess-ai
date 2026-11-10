@@ -1,5 +1,6 @@
 #include "Moves.h"
 #include "TextureManager.h"
+#include "gui.h"
 #include "minimax.h"
 #include <SFML/Graphics.hpp>
 #include <SFML/Graphics/CircleShape.hpp>
@@ -61,6 +62,8 @@ int mode = DEACTIVED;
 std::vector<Move> moves;
 sf::Vector2i whiteKingPos;
 sf::Vector2i blackKingPos;
+
+messageComponent checkmate;
 
 static inline bool inBounds(int x, int y) {
   return x >= 0 && x < 8 && y >= 0 && y < 8;
@@ -188,6 +191,7 @@ void renderingThread(sf::RenderWindow *win, GameState *state,
       win->clear();
       drawBoard(win, PLACEHOLDER);
       drawPieces(state->board, win, texManager);
+      checkmate.draw(*win);
       win->display();
     }
   };
@@ -199,6 +203,11 @@ int main() {
   window.setPosition({0, 0});
   window.setFramerateLimit(60);
   GameState game;
+  sf::Font font;
+  if (!font.openFromFile("BlackOpsOne-Regular.ttf")) {
+    std::cerr << "Error loading font\n";
+    return -1;
+  }
 
   int board[8][8] = {
       {B_ROOK, B_KNIGHT, B_BISHOP, B_QUEEN, B_KING, B_BISHOP, B_KNIGHT,
@@ -240,7 +249,13 @@ int main() {
           std::fill(&placeholder[0][0],
                     &placeholder[0][0] + sizeof(placeholder) / sizeof(int), 0);
 
-          sf::Vector2i mousePos(mouseEvent->position.x, mouseEvent->position.y);
+          sf::Vector2i rawMousePos(mouseEvent->position.x,
+                                   mouseEvent->position.y);
+          // need to calculate mouse position with respect to scaling
+          sf::Vector2f convertedMousePos =
+              window.mapPixelToCoords(rawMousePos); // intermediary variable
+          sf::Vector2i mousePos = {(int)convertedMousePos.x,
+                                   (int)convertedMousePos.y};
           sf::Vector2i coordinate = selectPiece(mousePos, game);
           if (colorOf(game.board[coordinate.y][coordinate.x]) ==
               game.sideToMove) {
@@ -262,6 +277,14 @@ int main() {
                       << bestMove.move.from.x << " -> " << bestMove.move.to.y
                       << ", " << bestMove.move.to.x << std::endl;
             game = makeMove(game, bestMove.move);
+            if (isCheckmated(game, game.sideToMove)) {
+              checkmate.setBGColor(sf::Color(12, 12, 12));
+              checkmate.setText("Checkmate!");
+              checkmate.setFontColor(sf::Color(255, 255, 255));
+              checkmate.setSize({300.0f, 300.0f});
+              checkmate.setFont(font);
+              checkmate.show();
+            }
           }
         }
       }

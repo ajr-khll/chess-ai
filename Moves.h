@@ -1,5 +1,6 @@
 #pragma once
 #include <SFML/System/Vector2.hpp>
+#include <optional>
 #include <vector>
 
 struct Move {
@@ -22,7 +23,12 @@ struct GameState {
 
 std::vector<Move> calculatePossibleMoves(int piece, sf::Vector2i position,
                                          GameState game);
+
+std::vector<Move> gatherMoves(GameState game, int side);
+
 bool isInCheck(GameState current, int color);
+
+bool isCheckmated(GameState state, int side);
 
 int colorOf(int piece);
 

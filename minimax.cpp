@@ -143,13 +143,13 @@ int evaluateScore(GameState state, int color) {
 }
 
 // Minimax algorithm, recursive
-const int CAP = 5; // think no more than 5 moves ahead
+const int CAP = 4; // think no more than 5 moves ahead
 int counter = 0;
 
 evaluatedMove Minimax(GameState state, int side, Move lastMove, int depth) {
   // base case
   if (depth == CAP) {
-    return {lastMove, evaluateScore(state, side)};
+    return {lastMove, evaluateScore(state, BLACK)};
   }
   evaluatedMove bestMove;
   bestMove.move = {{-1, -1}, {-1, -1}};
@@ -159,24 +159,14 @@ evaluatedMove Minimax(GameState state, int side, Move lastMove, int depth) {
     bestMove.score = 999999;
   // recursive case. keep growing tree until depth == 4
   // first, get every possible move
-  std::vector<Move> moves;
-  for (int y = 0; y < 8; ++y) {
-    for (int x = 0; x < 8; ++x) {
-      int piece = state.board[y][x];
-      if (colorOf(piece) == side) {
-        std::vector<Move> pieceMoves =
-            calculatePossibleMoves(piece, {x, y}, state);
-        moves.insert(moves.end(), pieceMoves.begin(), pieceMoves.end());
-      }
-    }
-  }
+  std::vector<Move> moves = gatherMoves(state, side);
   if (moves.empty()) {
     if (isInCheck(state, side)) {
-      // If White is mated, return a very low number (but slightly higher if it
-      // takes longer) If Black is mated, return a very high number (but
-      // slightly lower if it takes longer)
+      // If White is mated, return a very high number (but slightly lower if it
+      // takes longer) If Black is mated, return a very low number (but
+      // slightly higher if it takes longer)
       return {{{-1, -1}, {-1, -1}},
-              (side == WHITE) ? -1000000 - depth : 1000000 + depth};
+              (side == WHITE) ? 1000000 + depth : -1000000 - depth};
     } else {
       return {{{-1, -1}, {-1, -1}}, 0};
     }
