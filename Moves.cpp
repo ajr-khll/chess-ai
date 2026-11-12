@@ -33,6 +33,31 @@ static inline bool isFriend(int piece, int other) {
   return colorOf(piece) == colorOf(other);
 }
 
+void startPos(GameState &state) {
+  int board[8][8] = {
+      {B_ROOK, B_KNIGHT, B_BISHOP, B_QUEEN, B_KING, B_BISHOP, B_KNIGHT,
+       B_ROOK}, // Row 0 (Black Back Rank)
+      {B_PAWN, B_PAWN, B_PAWN, B_PAWN, B_PAWN, B_PAWN, B_PAWN,
+       B_PAWN}, // Row 1 (Black Pawns)
+      {EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY}, // Row 2
+      {EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY}, // Row 3
+      {EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY}, // Row 4
+      {EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY}, // Row 5
+      {W_PAWN, W_PAWN, W_PAWN, W_PAWN, W_PAWN, W_PAWN, W_PAWN,
+       W_PAWN}, // Row 6 (White Pawns)
+      {W_ROOK, W_KNIGHT, W_BISHOP, W_QUEEN, W_KING, W_BISHOP, W_KNIGHT,
+       W_ROOK} // Row 7 (White Back Rank)
+  };
+
+  std::copy(&board[0][0], &board[0][0] + 64,
+            &state.board[0][0]); // assign start gamestate board using memory
+                                 // copy (what a wonderful programming language
+                                 // this is)
+  state.sideToMove = WHITE;
+  state.kingPos[WHITE] = {4, 7};
+  state.kingPos[BLACK] = {4, 0};
+}
+
 static void addSlidingMoves(std::vector<Move> &out, int piece, sf::Vector2i pos,
                             int (&BOARD)[8][8],
                             const std::vector<sf::Vector2i> &directions) {

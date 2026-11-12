@@ -1,5 +1,6 @@
 #include "Moves.h"
 #include "TextureManager.h"
+#include "UCI/UciOut.h"
 #include "gui.h"
 #include "minimax.h"
 #include "simulateMoves.h"
@@ -219,28 +220,8 @@ int main() {
     return -1;
   }
 
-  int board[8][8] = {
-      {B_ROOK, B_KNIGHT, B_BISHOP, B_QUEEN, B_KING, B_BISHOP, B_KNIGHT,
-       B_ROOK}, // Row 0 (Black Back Rank)
-      {B_PAWN, B_PAWN, B_PAWN, B_PAWN, B_PAWN, B_PAWN, B_PAWN,
-       B_PAWN}, // Row 1 (Black Pawns)
-      {EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY}, // Row 2
-      {EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY}, // Row 3
-      {EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY}, // Row 4
-      {EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY}, // Row 5
-      {W_PAWN, W_PAWN, W_PAWN, W_PAWN, W_PAWN, W_PAWN, W_PAWN,
-       W_PAWN}, // Row 6 (White Pawns)
-      {W_ROOK, W_KNIGHT, W_BISHOP, W_QUEEN, W_KING, W_BISHOP, W_KNIGHT,
-       W_ROOK} // Row 7 (White Back Rank)
-  };
-
-  std::copy(&board[0][0], &board[0][0] + 64,
-            &game.board[0][0]); // assign start gamestate board using memory
-                                // copy (what a wonderful programming language
-                                // this is)
-  game.sideToMove = WHITE;
-  game.kingPos[WHITE] = {4, 7};
-  game.kingPos[BLACK] = {4, 0};
+  startPos(game);
+  UciOut output;
 
   int placeholder[8][8] = {{0}};
 
@@ -283,10 +264,8 @@ int main() {
           if (game.sideToMove == BLACK) {
             // grab the best move for black, using wrapper function to time it.
             evaluatedMove bestMove = algorithmMove(game, BLACK);
-            std::cout << "Best Move for Black: " << bestMove.move.from.y << ", "
-                      << bestMove.move.from.x << " -> " << bestMove.move.to.y
-                      << ", " << bestMove.move.to.x << std::endl;
-            game = makeMove(game, bestMove.move);
+            output.sendMove(bestMove);
+            game = makeMove(game, bestMove);
             if (isCheckmated(game, game.sideToMove)) {
               checkmate.setBGColor(sf::Color(12, 12, 12));
               checkmate.setText("Checkmate!");

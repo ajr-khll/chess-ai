@@ -21,6 +21,8 @@ struct GameState {
   sf::Vector2i kingPos[2];
 };
 
+void startPos(GameState &state);
+
 std::vector<Move> calculatePossibleMoves(int piece, sf::Vector2i position,
                                          GameState game);
 

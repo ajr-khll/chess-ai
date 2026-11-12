@@ -158,8 +158,8 @@ evaluatedMove Minimax(GameState state, int side, int alpha, int beta,
     }
     return {lastMove, score};
   }
-  evaluatedMove bestMove;
-  bestMove.move = {{-1, -1}, {-1, -1}};
+  Move nullMove = {{-1, -1}, {-1, -1}};
+  evaluatedMove bestMove{nullMove};
   if (side == BLACK)
     bestMove.score = -999999;
   else
@@ -189,8 +189,7 @@ evaluatedMove Minimax(GameState state, int side, int alpha, int beta,
         alpha = result.score;
       }
       if (result.score > bestMove.score) {
-        bestMove.score = result.score;
-        bestMove.move = move;
+        bestMove = {move, result.score};
       }
       if (alpha >= beta) {
         break;
@@ -200,8 +199,7 @@ evaluatedMove Minimax(GameState state, int side, int alpha, int beta,
         beta = result.score;
       }
       if (result.score < bestMove.score) {
-        bestMove.score = result.score;
-        bestMove.move = move;
+        bestMove = {move, result.score};
       }
       if (beta <= alpha) {
         break;

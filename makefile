@@ -23,7 +23,7 @@ else
 endif
 
 TARGET := app
-SRCS   := main.cpp Moves.cpp simulateMoves.cpp minimax.cpp gui.cpp
+SRCS   := main.cpp Moves.cpp simulateMoves.cpp minimax.cpp gui.cpp UCI/UciOut.cpp
 OBJS   := $(SRCS:.cpp=.o)
 
 all: $(TARGET)
